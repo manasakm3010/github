@@ -1,0 +1,111 @@
+#define BLYNK_PRINT Serial
+#include <ESP8266WiFi.h>
+#include<BlynkSimpleEsp8266.h>
+char auth[]="GBK26ApxRc_gwhI2W4wmJiZ9BF06mZtJ";
+char ssid[]="OPPO A3s";
+char pass[]="manasahea";
+BlynkTimer timer;
+
+#include <Servo.h>
+int ldr1=D1;
+int ldr2=D3;
+int ir=D0;
+int relay=D5;
+int ldrval1;
+int ldrval2;
+int irval;
+Servo myservo;
+
+#include "DHT.h"
+#define DHTPIN D7
+#define DHTTYPE DHT11
+DHT dht(DHTPIN, DHTTYPE);
+
+ 
+WidgetLED led1(V13);
+WidgetLED led2(V14);
+
+
+
+void setup() 
+{
+ Serial.begin(9600);
+ dht.begin();
+ Blynk.begin(auth,ssid,pass);
+ pinMode(ldr1,INPUT);
+ pinMode(ldr2,INPUT);
+ pinMode(ir,INPUT);
+ pinMode(relay,OUTPUT);
+ myservo.attach(D2);
+ myservo.write(90);
+ timer.setInterval(1000,sen);
+ timer.setInterval(1500,dust);
+ timer.setInterval(3000,temp);
+   
+}
+void loop()
+{
+ Blynk.run();
+  timer.run();
+
+ }
+ void temp()
+ {
+  float h = dht.readHumidity();
+  // Read temperature as Celsius (the default)
+  float t = dht.readTemperature();
+  if (isnan(h) || isnan(t))
+  {
+    Serial.println(F("Failed to read from DHT sensor!"));
+    return;
+  }
+
+  Blynk.virtualWrite(V22,t);
+  Blynk.virtualWrite(V23,h);
+ }
+  void sen()
+{
+  ldrval1=digitalRead(ldr1);
+  Serial.println("ldrval1= " + String(ldrval1));
+  ldrval2=digitalRead(ldr2);
+  Serial.println("ldrval2= " + String(ldrval2));
+  if (ldrval1==0 && ldrval2==1) 
+  {
+    myservo.write(0);
+    Blynk.virtualWrite(V15,"panel towards left");
+  
+  }
+  else if(ldrval1==1 && ldrval2==0)
+  {
+    myservo.write(180);
+    Blynk.virtualWrite(V15,"panel towards right");
+  }
+  else
+  {
+    myservo.write(90);
+    Blynk.virtualWrite(V15,"panel in the center");
+  }
+}
+
+void dust()
+{
+  irval=digitalRead(ir);
+  Serial.print("irval= " + String(irval));
+  if(irval==0)
+  {
+    led1.on();
+    led2.off();
+    digitalWrite(relay,0);
+    Serial.println("PUMP ON");
+    Blynk.virtualWrite(V10,"Dust Detected");
+  }
+  else 
+  {
+     led1.off();
+     led2.on();
+    digitalWrite(relay,1);
+    Serial.println("PUMP OFF");
+    Blynk.virtualWrite(V10,"Dust not Detected");
+  }
+}
+  
